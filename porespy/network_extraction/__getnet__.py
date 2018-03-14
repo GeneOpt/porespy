@@ -69,41 +69,43 @@ def extract_pore_network(im, dt=None, voxel_size=1):
     # Start extracting size information for pores and throats
     for i in tqdm(Ps):
         pore = i - 1
-#        if slices[pore] is None:
-#            continue
-        s = extend_slice(slices[pore], im.shape)
-        sub_im = im[s]
-        sub_dt = dt[s]
-        pore_im = sub_im == i
-        pore_dt = spim.distance_transform_edt(sp.pad(pore_im, pad_width=1,
-                                                     mode='constant'))
-        s_offset = sp.array([i.start for i in s])
-        p_label[pore] = i
-        p_coords[pore, :] = spim.center_of_mass(pore_im) + s_offset
-        p_volume[pore] = sp.sum(pore_im)
-        p_dia_local[pore] = 2*sp.amax(pore_dt)
-        p_dia_global[pore] = 2*sp.amax(sub_dt)
-        p_area_surf[pore] = sp.sum(pore_dt == 1)
-        p_area_solid[pore] = sp.sum(sub_dt == 1)
-        im_w_throats = spim.binary_dilation(input=pore_im, structure=ball(1))
-        im_w_throats = im_w_throats*sub_im
-        Pn = sp.unique(im_w_throats)[1:] - 1
-        for j in Pn:
-            if j > pore:
-                t_conns.append([pore, j])
-                vx = sp.where(im_w_throats == (j + 1))
-                t_dia_inscribed.append(2*sp.amax(sub_dt[vx]))
-                t_perimeter.append(sp.sum(sub_dt[vx] < 2))
-                t_area.append(sp.size(vx[0]))
-                t_inds = tuple([i+j for i, j in zip(vx, s_offset)])
-                temp = sp.where(dt[t_inds] == sp.amax(dt[t_inds]))[0][0]
-                if im.ndim == 2:
-                    t_coords.append(tuple((t_inds[0][temp],
-                                           t_inds[1][temp])))
-                else:
-                    t_coords.append(tuple((t_inds[0][temp],
-                                           t_inds[1][temp],
-                                           t_inds[2][temp])))
+        if slices[pore] is None:
+            continue
+        else:
+            s = extend_slice(slices[pore], im.shape)
+            sub_im = im[s]
+            sub_dt = dt[s]
+            pore_im = sub_im == i
+            pore_dt = spim.distance_transform_edt(sp.pad(pore_im, pad_width=1,
+                                                         mode='constant'))
+            s_offset = sp.array([i.start for i in s])
+            p_label[pore] = i
+            p_coords[pore, :] = spim.center_of_mass(pore_im) + s_offset
+            p_volume[pore] = sp.sum(pore_im)
+            p_dia_local[pore] = 2*sp.amax(pore_dt)
+            p_dia_global[pore] = 2*sp.amax(sub_dt)
+            p_area_surf[pore] = sp.sum(pore_dt == 1)
+            p_area_solid[pore] = sp.sum(sub_dt == 1)
+            im_w_throats = spim.binary_dilation(input=pore_im,
+                                                structure=ball(1))
+            im_w_throats = im_w_throats*sub_im
+            Pn = sp.unique(im_w_throats)[1:] - 1
+            for j in Pn:
+                if j > pore:
+                    t_conns.append([pore, j])
+                    vx = sp.where(im_w_throats == (j + 1))
+                    t_dia_inscribed.append(2*sp.amax(sub_dt[vx]))
+                    t_perimeter.append(sp.sum(sub_dt[vx] < 2))
+                    t_area.append(sp.size(vx[0]))
+                    t_inds = tuple([i+j for i, j in zip(vx, s_offset)])
+                    temp = sp.where(dt[t_inds] == sp.amax(dt[t_inds]))[0][0]
+                    if im.ndim == 2:
+                        t_coords.append(tuple((t_inds[0][temp],
+                                               t_inds[1][temp])))
+                    else:
+                        t_coords.append(tuple((t_inds[0][temp],
+                                               t_inds[1][temp],
+                                               t_inds[2][temp])))
     # Clean up values
     Nt = len(t_dia_inscribed)  # Get number of throats
     if im.ndim == 2:  # If 2D, add 0's in 3rd dimension
